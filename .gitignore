@@ -1,0 +1,23 @@
+# WordPress
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Node modules (if you add any build tools later)
+node_modules/
+
+# Backup files
+*.bak
+*~ 
