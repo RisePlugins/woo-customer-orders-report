@@ -20,6 +20,7 @@ class WooCustomerOrdersReport {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
         add_action('init', array($this, 'handle_csv_export'));
         add_action('wp_ajax_get_products_by_category', array($this, 'ajax_get_products_by_category'));
+        add_action('admin_notices', array($this, 'show_version_notice'));
     }
     
     public function add_admin_menu() {
@@ -845,6 +846,18 @@ class WooCustomerOrdersReport {
         }
         
         wp_send_json_success($output);
+    }
+    
+    /**
+     * Show version notice (for testing auto-updater)
+     */
+    public function show_version_notice() {
+        $screen = get_current_screen();
+        if ($screen && $screen->id === 'woocommerce_page_customer-orders-report') {
+            echo '<div class="notice notice-info is-dismissible">';
+            echo '<p><strong>WooCommerce Customer Orders Report v1.0.1</strong> - Auto-updater test successful! Charts and performance improvements included.</p>';
+            echo '</div>';
+        }
     }
     
     public function admin_page() {
