@@ -1,4 +1,4 @@
 {
-    "version": "1.0.4",
-    "changelog": "Fixed all version references and improved plugins page update checker"
+    "version": "1.0.5",
+    "changelog": "Fixed charts and tab functionality when date filters are applied. Added revenue chart to financial tab with interactive controls."
 }

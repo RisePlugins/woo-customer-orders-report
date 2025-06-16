@@ -37,7 +37,7 @@ class WooCustomerOrdersReport {
     }
     
     public function enqueue_scripts($hook) {
-        // Load on plugin page and plugins.php page
+        // Load on plugin page for charts and plugins.php page for update checker
         if ($hook !== 'woocommerce_page_customer-orders-report' && $hook !== 'plugins.php') {
             return;
         }
@@ -191,6 +191,45 @@ class WooCustomerOrdersReport {
                 background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
                 transform: translateY(-1px);
+            }
+            .cor-revenue-chart-section {
+                margin-top: 32px;
+                background: #fff;
+                border-radius: 12px;
+                padding: 24px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            }
+            .cor-revenue-chart-section h3 {
+                margin: 0 0 20px 0;
+                color: #0f172a;
+                font-size: 18px;
+                font-weight: 600;
+            }
+            .cor-revenue-tabs {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 20px;
+                flex-wrap: wrap;
+            }
+            .cor-revenue-tab {
+                padding: 8px 16px;
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 500;
+                color: #64748b;
+                transition: all 0.2s ease;
+            }
+            .cor-revenue-tab:hover {
+                background: #e2e8f0;
+                color: #374151;
+            }
+            .cor-revenue-tab.active {
+                background: #4f46e5;
+                color: #fff;
+                border-color: #4f46e5;
             }
             .cor-analytics { 
                 padding: 0; margin: 32px 0; 
@@ -855,12 +894,7 @@ class WooCustomerOrdersReport {
      * Show version notice (for testing auto-updater)
      */
     public function show_version_notice() {
-        $screen = get_current_screen();
-        if ($screen && $screen->id === 'woocommerce_page_customer-orders-report') {
-            echo '<div class="notice notice-info is-dismissible">';
-            echo '<p><strong>WooCommerce Customer Orders Report v1.0.4</strong> - Auto-updater test successful! All version references fixed.</p>';
-            echo '</div>';
-        }
+        // Version notice removed - auto-updater working properly
     }
     
     /**
@@ -917,16 +951,7 @@ class WooCustomerOrdersReport {
         $filters = $this->get_filters();
         
         echo '<div class="wrap">';
-        echo '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
-        echo '<h1 style="margin: 0;">' . __('Customer Orders Report', 'woo-customer-orders-report') . '</h1>';
-        echo '<div>';
-        echo '<button type="button" id="cor-check-updates" class="button button-secondary" style="margin-right: 10px;">';
-        echo '<span class="dashicons dashicons-update" style="margin-right: 5px;"></span>';
-        echo __('Check for Updates', 'woo-customer-orders-report');
-        echo '</button>';
-        echo '<span id="cor-update-status" style="margin-left: 10px; font-weight: bold;"></span>';
-        echo '</div>';
-        echo '</div>';
+        echo '<h1>' . __('Customer Orders Report', 'woo-customer-orders-report') . '</h1>';
         
         // Filters Form
         $this->render_filters_form($filters);
@@ -1351,8 +1376,11 @@ class WooCustomerOrdersReport {
         
         echo '</div>';
         
-        // Initialize Charts JavaScript
-        $this->output_chart_scripts($analytics_data);
+        // Store chart data for JavaScript initialization
+        echo '<script>';
+        echo 'window.analyticsChartData = ' . json_encode($analytics_data) . ';';
+        echo 'window.revenueChartData = ' . json_encode($analytics_data['revenue_by_date']) . ';';
+        echo '</script>';
         
         echo '</div>'; // End overview-content
         
@@ -1785,6 +1813,28 @@ class WooCustomerOrdersReport {
         echo '<span class="cor-stat-value">$' . number_format($analytics_data['grand_total'], 2) . '</span>';
         echo '<span class="cor-stat-label cor-stat-grand">' . __('Grand Total', 'woo-customer-orders-report') . '</span>';
         echo '<span class="cor-stat-description">' . __('Checkout plus future revenue', 'woo-customer-orders-report') . '</span>';
+        echo '</div>';
+        
+        echo '</div>';
+        
+        // Revenue Chart Section
+        echo '<div class="cor-revenue-chart-section">';
+        echo '<h3>' . __('Revenue Over Time', 'woo-customer-orders-report') . '</h3>';
+        
+        // Revenue Type Tabs
+        echo '<div class="cor-revenue-tabs">';
+        echo '<div class="cor-revenue-tab active" data-revenue-type="all">' . __('All', 'woo-customer-orders-report') . '</div>';
+        echo '<div class="cor-revenue-tab" data-revenue-type="cart">' . __('Cart Total', 'woo-customer-orders-report') . '</div>';
+        echo '<div class="cor-revenue-tab" data-revenue-type="discount">' . __('Discounts', 'woo-customer-orders-report') . '</div>';
+        echo '<div class="cor-revenue-tab" data-revenue-type="tax">' . __('Tax', 'woo-customer-orders-report') . '</div>';
+        echo '<div class="cor-revenue-tab" data-revenue-type="checkout">' . __('Checkout', 'woo-customer-orders-report') . '</div>';
+        echo '<div class="cor-revenue-tab" data-revenue-type="future">' . __('Future', 'woo-customer-orders-report') . '</div>';
+        echo '<div class="cor-revenue-tab" data-revenue-type="grand">' . __('Grand Total', 'woo-customer-orders-report') . '</div>';
+        echo '</div>';
+        
+        // Chart Canvas
+        echo '<div class="cor-chart-container">';
+        echo '<canvas id="revenueChart"></canvas>';
         echo '</div>';
         
         echo '</div>';
@@ -2340,31 +2390,107 @@ class WooCustomerOrdersReport {
                     }
                 }
                 
-                // Initialize tab switching (only on plugin page)
-                if ($("#cor-check-updates").length > 0) {
-                    initTabSwitching();
+                // Initialize overview charts when data is available
+                function initOverviewCharts() {
+                    if (typeof Chart === "undefined" || !window.analyticsChartData) {
+                        setTimeout(initOverviewCharts, 100);
+                        return;
+                    }
+                    
+                    var data = window.analyticsChartData;
+                    
+                    // Orders by Date Chart
+                    var ordersCtx = document.getElementById("ordersChart");
+                    if (ordersCtx) {
+                        new Chart(ordersCtx.getContext("2d"), {
+                            type: "line",
+                            data: {
+                                labels: data.orders_by_date.labels,
+                                datasets: [{
+                                    label: "Orders",
+                                    data: data.orders_by_date.data,
+                                    borderColor: "#4f46e5",
+                                    backgroundColor: "rgba(79, 70, 229, 0.1)",
+                                    borderWidth: 3,
+                                    tension: 0.4,
+                                    fill: true,
+                                    pointBackgroundColor: "#4f46e5",
+                                    pointBorderColor: "#fff",
+                                    pointBorderWidth: 2,
+                                    pointRadius: 5
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: "rgba(0, 0, 0, 0.8)",
+                                        titleColor: "#fff",
+                                        bodyColor: "#fff",
+                                        cornerRadius: 8,
+                                        displayColors: false
+                                    }
+                                },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { color: "#64748b" } },
+                                    y: { beginAtZero: true, grid: { color: "rgba(100, 116, 139, 0.1)" }, ticks: { color: "#64748b" } }
+                                }
+                            }
+                        });
+                    }
+                    
+                    // Top Categories Progress Bars
+                    var categoriesData = {
+                        labels: data.top_categories.labels,
+                        data: data.top_categories.data
+                    };
+                    var colors = ["#4f46e5", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
+                    var categoriesList = document.getElementById("categoriesList");
+                    if (categoriesList && categoriesData.labels.length > 0) {
+                        var maxValue = Math.max(...categoriesData.data);
+                        categoriesData.labels.forEach(function(label, index) {
+                            var count = categoriesData.data[index];
+                            var percentage = maxValue > 0 ? (count / maxValue) * 100 : 0;
+                            var color = colors[index % colors.length];
+                            var item = document.createElement("div");
+                            item.className = "cor-category-item";
+                            item.innerHTML = 
+                                "<div class=\"cor-category-info\">" +
+                                "<div class=\"cor-category-color\" style=\"background-color: " + color + "\"></div>" +
+                                "<div class=\"cor-category-name\">" + label + "</div>" +
+                                "</div>" +
+                                "<div class=\"cor-category-count\">" + count + "</div>" +
+                                "<div class=\"cor-progress-bar\">" +
+                                "<div class=\"cor-progress-fill\" style=\"background-color: " + color + "; width: " + percentage + "%\"></div>" +
+                                "</div>";
+                            categoriesList.appendChild(item);
+                        });
+                    }
                 }
                 
-                // Check for updates functionality (works on both plugin page and plugins.php)
-                $(document).on("click", "#cor-check-updates, #cor-check-updates-link", function(e) {
+                // Initialize tab switching (only on plugin admin page)
+                if ($(".cor-reports-tab").length > 0) {
+                    initTabSwitching();
+                    // Also initialize overview charts
+                    initOverviewCharts();
+                }
+                
+                // Check for updates functionality (only on plugins.php page)
+                $(document).on("click", "#cor-check-updates-link", function(e) {
                     e.preventDefault();
                     var $button = $(this);
                     var $status = $("#cor-update-status");
-                    var isPluginsPage = $(this).attr("id") === "cor-check-updates-link";
                     
-                    // For plugins page, create a status element
-                    if (isPluginsPage && $status.length === 0) {
+                    // Create a status element if it does not exist
+                    if ($status.length === 0) {
                         $button.after(" <span id=\"cor-update-status\"></span>");
                         $status = $("#cor-update-status");
                     }
                     
                     // Show loading state
-                    if (!isPluginsPage) {
-                        $button.prop("disabled", true);
-                        $button.find(".dashicons").addClass("dashicons-update-alt").removeClass("dashicons-update");
-                    } else {
-                        $button.css("opacity", "0.6");
-                    }
+                    $button.css("opacity", "0.6");
                     $status.html("<span style=\"color: #0073aa;\">Checking for updates...</span>");
                     
                     // Make AJAX request
@@ -2373,7 +2499,7 @@ class WooCustomerOrdersReport {
                         type: "POST",
                         data: {
                             action: "cor_check_updates",
-                            nonce: "' . wp_create_nonce('cor_check_updates') . '"
+                            nonce: "' . wp_create_nonce("cor_check_updates") . '"
                         },
                         success: function(response) {
                             if (response.success) {
@@ -2395,12 +2521,7 @@ class WooCustomerOrdersReport {
                         },
                         complete: function() {
                             // Reset button state
-                            if (!isPluginsPage) {
-                                $button.prop("disabled", false);
-                                $button.find(".dashicons").removeClass("dashicons-update-alt").addClass("dashicons-update");
-                            } else {
-                                $button.css("opacity", "1");
-                            }
+                            $button.css("opacity", "1");
                             
                             // Clear status after 10 seconds
                             setTimeout(function() {
