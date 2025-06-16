@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: WooCommerce Customer Orders Report
- * Plugin URI: https://github.com/YOUR_USERNAME/woo-customer-orders-report
- * GitHub Plugin URI: YOUR_USERNAME/woo-customer-orders-report
+ * Plugin URI: https://github.com/RisePlugins/woo-customer-orders-report
+ * GitHub Plugin URI: RisePlugins/woo-customer-orders-report
  * Description: Comprehensive customer orders reporting tool for WooCommerce with advanced filtering, analytics, and export capabilities.
  * Version: 1.0.0
- * Update URI: https://github.com/YOUR_USERNAME/woo-customer-orders-report
+ * Update URI: https://github.com/RisePlugins/woo-customer-orders-report
  * Author: Ryan Moreno
  * Author URI: https://tonicsiteshop.com
  * License: GPL v2 or later
@@ -69,8 +69,8 @@ require_once WOO_COR_PLUGIN_DIR . 'includes/class-plugin-updater.php';
 // Initialize the main class
 new WooCustomerOrdersReport();
 
-// Initialize the updater (replace YOUR_USERNAME with your GitHub username)
-new WooCorPluginUpdater(__FILE__, 'YOUR_USERNAME', 'woo-customer-orders-report', '1.0.0');
+// Initialize the updater
+new WooCorPluginUpdater(__FILE__, 'RisePlugins', 'woo-customer-orders-report', '1.0.0');
 }
 
 /**
