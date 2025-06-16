@@ -22,6 +22,7 @@ class WooCustomerOrdersReport {
         add_action('wp_ajax_get_products_by_category', array($this, 'ajax_get_products_by_category'));
         add_action('admin_notices', array($this, 'show_version_notice'));
         add_action('wp_ajax_cor_check_updates', array($this, 'ajax_check_updates'));
+        add_filter('plugin_row_meta', array($this, 'add_plugin_row_meta'), 10, 2);
     }
     
     public function add_admin_menu() {
@@ -36,7 +37,8 @@ class WooCustomerOrdersReport {
     }
     
     public function enqueue_scripts($hook) {
-        if ($hook !== 'woocommerce_page_customer-orders-report') {
+        // Load on plugin page and plugins.php page
+        if ($hook !== 'woocommerce_page_customer-orders-report' && $hook !== 'plugins.php') {
             return;
         }
         
@@ -897,6 +899,17 @@ class WooCustomerOrdersReport {
                 'has_update' => false
             ));
         }
+    }
+    
+    /**
+     * Add custom links to plugin row on plugins page
+     */
+    public function add_plugin_row_meta($links, $file) {
+        if (plugin_basename(WOO_COR_PLUGIN_FILE) === $file) {
+            $check_updates_link = '<a href="#" id="cor-check-updates-link" style="color: #0073aa; font-weight: bold;">' . __('Check for Updates', 'woo-customer-orders-report') . '</a>';
+            $links[] = $check_updates_link;
+        }
+        return $links;
     }
     
     public function admin_page() {
@@ -2327,18 +2340,31 @@ class WooCustomerOrdersReport {
                     }
                 }
                 
-                // Initialize tab switching
-                initTabSwitching();
+                // Initialize tab switching (only on plugin page)
+                if ($("#cor-check-updates").length > 0) {
+                    initTabSwitching();
+                }
                 
-                // Check for updates functionality
-                $("#cor-check-updates").on("click", function(e) {
+                // Check for updates functionality (works on both plugin page and plugins.php)
+                $(document).on("click", "#cor-check-updates, #cor-check-updates-link", function(e) {
                     e.preventDefault();
                     var $button = $(this);
                     var $status = $("#cor-update-status");
+                    var isPluginsPage = $(this).attr("id") === "cor-check-updates-link";
+                    
+                    // For plugins page, create a status element
+                    if (isPluginsPage && $status.length === 0) {
+                        $button.after(" <span id=\"cor-update-status\"></span>");
+                        $status = $("#cor-update-status");
+                    }
                     
                     // Show loading state
-                    $button.prop("disabled", true);
-                    $button.find(".dashicons").addClass("dashicons-update-alt").removeClass("dashicons-update");
+                    if (!isPluginsPage) {
+                        $button.prop("disabled", true);
+                        $button.find(".dashicons").addClass("dashicons-update-alt").removeClass("dashicons-update");
+                    } else {
+                        $button.css("opacity", "0.6");
+                    }
                     $status.html("<span style=\"color: #0073aa;\">Checking for updates...</span>");
                     
                     // Make AJAX request
@@ -2369,8 +2395,12 @@ class WooCustomerOrdersReport {
                         },
                         complete: function() {
                             // Reset button state
-                            $button.prop("disabled", false);
-                            $button.find(".dashicons").removeClass("dashicons-update-alt").addClass("dashicons-update");
+                            if (!isPluginsPage) {
+                                $button.prop("disabled", false);
+                                $button.find(".dashicons").removeClass("dashicons-update-alt").addClass("dashicons-update");
+                            } else {
+                                $button.css("opacity", "1");
+                            }
                             
                             // Clear status after 10 seconds
                             setTimeout(function() {
