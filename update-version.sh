@@ -23,8 +23,8 @@ sed -i.bak "s/define('WOO_COR_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+')/define('WOO
 # Update updater initialization
 sed -i.bak "s/'woo-customer-orders-report', '[0-9]\+\.[0-9]\+\.[0-9]\+'/'woo-customer-orders-report', '$NEW_VERSION'/" woo-customer-orders-report.php
 
-# Update admin notice version
-sed -i.bak "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/v$NEW_VERSION/" includes/class-woo-customer-orders-report.php
+# Update admin notice version (more specific pattern)
+sed -i.bak "s/WooCommerce Customer Orders Report v[0-9]\+\.[0-9]\+\.[0-9]\+/WooCommerce Customer Orders Report v$NEW_VERSION/" includes/class-woo-customer-orders-report.php
 
 # Update version.json
 cat > version.json << EOF

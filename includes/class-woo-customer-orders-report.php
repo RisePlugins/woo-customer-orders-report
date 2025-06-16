@@ -858,7 +858,7 @@ class WooCustomerOrdersReport {
         $screen = get_current_screen();
         if ($screen && $screen->id === 'woocommerce_page_customer-orders-report') {
             echo '<div class="notice notice-info is-dismissible">';
-            echo '<p><strong>WooCommerce Customer Orders Report v1.0.2</strong> - Auto-updater test successful! Check for Updates button added.</p>';
+            echo '<p><strong>WooCommerce Customer Orders Report v1.0.3</strong> - Auto-updater test successful! Plugins page update link added.</p>';
             echo '</div>';
         }
     }
