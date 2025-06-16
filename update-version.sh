@@ -14,8 +14,17 @@ CHANGELOG=$2
 
 echo "Updating to version $NEW_VERSION..."
 
-# Update main plugin file
+# Update main plugin file header
 sed -i.bak "s/Version: [0-9]\+\.[0-9]\+\.[0-9]\+/Version: $NEW_VERSION/" woo-customer-orders-report.php
+
+# Update version constant
+sed -i.bak "s/define('WOO_COR_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+')/define('WOO_COR_VERSION', '$NEW_VERSION')/" woo-customer-orders-report.php
+
+# Update updater initialization
+sed -i.bak "s/'woo-customer-orders-report', '[0-9]\+\.[0-9]\+\.[0-9]\+'/'woo-customer-orders-report', '$NEW_VERSION'/" woo-customer-orders-report.php
+
+# Update admin notice version
+sed -i.bak "s/v[0-9]\+\.[0-9]\+\.[0-9]\+/v$NEW_VERSION/" includes/class-woo-customer-orders-report.php
 
 # Update version.json
 cat > version.json << EOF
@@ -24,9 +33,6 @@ cat > version.json << EOF
     "changelog": "$CHANGELOG"
 }
 EOF
-
-# Update updater initialization
-sed -i.bak "s/'[0-9]\+\.[0-9]\+\.[0-9]\+'/'$NEW_VERSION'/" woo-customer-orders-report.php
 
 echo "Version updated to $NEW_VERSION"
 echo "Don't forget to:"
