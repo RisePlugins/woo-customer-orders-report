@@ -34,7 +34,13 @@ cat > version.json << EOF
 }
 EOF
 
+# Clean up backup files
+rm -f *.bak
+rm -f includes/*.bak
+
 echo "Version updated to $NEW_VERSION"
+echo "Backup files cleaned up"
+echo ""
 echo "Don't forget to:"
 echo "1. Test your changes"
 echo "2. git add ."
