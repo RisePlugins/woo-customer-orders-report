@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/RisePlugins/woo-customer-orders-report
  * GitHub Plugin URI: RisePlugins/woo-customer-orders-report
  * Description: Comprehensive customer orders reporting tool for WooCommerce with advanced filtering, analytics, and export capabilities.
- * Version: 1.0.4
+ * Version: 1.0.5
  * Update URI: https://github.com/RisePlugins/woo-customer-orders-report
  * Author: Ryan Moreno
  * Author URI: https://tonicsiteshop.com
