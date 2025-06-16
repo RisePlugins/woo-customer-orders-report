@@ -1,4 +1,4 @@
 {
-    "version": "1.0.1",
-    "changelog": "Auto-updater test release with admin notice and performance improvements"
+    "version": "1.0.2",
+    "changelog": "Added Check for Updates button for instant update testing"
 }

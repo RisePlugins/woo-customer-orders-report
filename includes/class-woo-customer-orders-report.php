@@ -21,6 +21,7 @@ class WooCustomerOrdersReport {
         add_action('init', array($this, 'handle_csv_export'));
         add_action('wp_ajax_get_products_by_category', array($this, 'ajax_get_products_by_category'));
         add_action('admin_notices', array($this, 'show_version_notice'));
+        add_action('wp_ajax_cor_check_updates', array($this, 'ajax_check_updates'));
     }
     
     public function add_admin_menu() {
@@ -860,12 +861,59 @@ class WooCustomerOrdersReport {
         }
     }
     
+    /**
+     * AJAX handler to check for updates manually
+     */
+    public function ajax_check_updates() {
+        check_ajax_referer('cor_check_updates', 'nonce');
+        
+        if (!current_user_can('update_plugins')) {
+            wp_die(__('You do not have sufficient permissions to update plugins.'));
+        }
+        
+        // Clear the update transient to force a fresh check
+        delete_site_transient('update_plugins');
+        
+        // Trigger WordPress to check for plugin updates
+        wp_update_plugins();
+        
+        // Get the current update transient
+        $update_plugins = get_site_transient('update_plugins');
+        $plugin_file = 'woo-customer-orders-report/woo-customer-orders-report.php';
+        
+        if (isset($update_plugins->response[$plugin_file])) {
+            $update_info = $update_plugins->response[$plugin_file];
+            wp_send_json_success(array(
+                'message' => sprintf(
+                    __('Update available! Version %s is ready to install.', 'woo-customer-orders-report'),
+                    $update_info->new_version
+                ),
+                'new_version' => $update_info->new_version,
+                'has_update' => true
+            ));
+        } else {
+            wp_send_json_success(array(
+                'message' => __('No updates available. You have the latest version!', 'woo-customer-orders-report'),
+                'has_update' => false
+            ));
+        }
+    }
+    
     public function admin_page() {
         $current_page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
         $filters = $this->get_filters();
         
         echo '<div class="wrap">';
-        echo '<h1>' . __('Customer Orders Report', 'woo-customer-orders-report') . '</h1>';
+        echo '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">';
+        echo '<h1 style="margin: 0;">' . __('Customer Orders Report', 'woo-customer-orders-report') . '</h1>';
+        echo '<div>';
+        echo '<button type="button" id="cor-check-updates" class="button button-secondary" style="margin-right: 10px;">';
+        echo '<span class="dashicons dashicons-update" style="margin-right: 5px;"></span>';
+        echo __('Check for Updates', 'woo-customer-orders-report');
+        echo '</button>';
+        echo '<span id="cor-update-status" style="margin-left: 10px; font-weight: bold;"></span>';
+        echo '</div>';
+        echo '</div>';
         
         // Filters Form
         $this->render_filters_form($filters);
@@ -2281,6 +2329,56 @@ class WooCustomerOrdersReport {
                 
                 // Initialize tab switching
                 initTabSwitching();
+                
+                // Check for updates functionality
+                $("#cor-check-updates").on("click", function(e) {
+                    e.preventDefault();
+                    var $button = $(this);
+                    var $status = $("#cor-update-status");
+                    
+                    // Show loading state
+                    $button.prop("disabled", true);
+                    $button.find(".dashicons").addClass("dashicons-update-alt").removeClass("dashicons-update");
+                    $status.html("<span style=\"color: #0073aa;\">Checking for updates...</span>");
+                    
+                    // Make AJAX request
+                    $.ajax({
+                        url: ajaxurl,
+                        type: "POST",
+                        data: {
+                            action: "cor_check_updates",
+                            nonce: "' . wp_create_nonce('cor_check_updates') . '"
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                if (response.data.has_update) {
+                                    $status.html("<span style=\"color: #d63638;\">✓ " + response.data.message + "</span>");
+                                    // Show link to updates page
+                                    setTimeout(function() {
+                                        $status.append(" <a href=\"" + ajaxurl.replace("admin-ajax.php", "update-core.php") + "\" style=\"text-decoration: none;\">→ Go to Updates</a>");
+                                    }, 1000);
+                                } else {
+                                    $status.html("<span style=\"color: #00a32a;\">✓ " + response.data.message + "</span>");
+                                }
+                            } else {
+                                $status.html("<span style=\"color: #d63638;\">Error checking for updates</span>");
+                            }
+                        },
+                        error: function() {
+                            $status.html("<span style=\"color: #d63638;\">Error checking for updates</span>");
+                        },
+                        complete: function() {
+                            // Reset button state
+                            $button.prop("disabled", false);
+                            $button.find(".dashicons").removeClass("dashicons-update-alt").addClass("dashicons-update");
+                            
+                            // Clear status after 10 seconds
+                            setTimeout(function() {
+                                $status.html("");
+                            }, 10000);
+                        }
+                    });
+                });
             });
         ';
     }
